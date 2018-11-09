@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ko">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width">
+		<title>틱택토</title>
+		<style>
+			body {
+				text-align: center;
+			}
+			div {
+				margin: 10px;
+			}
+			#main {
+				margin: 0 auto;
+			}
+			button {
+				margin: 0;
+				padding: 0;
+				width: 90px;
+				height: 90px;
+				font-size: 80pt;
+				text-align: center;
+				line-height: 90px;
+				vertical-align: top;
+				background-color: #EBEBEB;
+				border: 1px solid black;
+				color: black;
+			}
+		</style>
+		<script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+		<script>
+			"use strict";
+			function Ehf(node, i, j)
+			{
+				this.node = node;	// 문서 객체
+				this.i = i;	// 배열의 첫번째 인덱스
+				this.j = j;	// 배열의 두번째 인덱스
+				this.color = null;	// true = O, false = X, null = 비어있는 곳
+			}
+
+			var SIZE = 3;	// 틱택토판 3x3
+			var board_arr, back_arr = [];
+			var color = false;	// true = O, false = X
+			var start = false;
+
+			$(document).ready(function () {
+				var tmp;
+				board_arr = new Array(SIZE);
+				for (var i = 0; i < SIZE; i++)
+				{
+					board_arr[i] = new Array(SIZE);
+					for (var j = 0; j < SIZE; j++)
+					{
+						tmp = $('<button></button>').attr('data-index', i * SIZE + j).appendTo('#main');	// data-index는 나중에 객체를 찾을 때 사용
+						board_arr[i][j] = new Ehf(tmp, i, j);
+					}
+					$('#main').append($('<br>'));
+				}
+				$('#main').css('width', ($('button').outerWidth() * SIZE) + 'px');	// 창 크기가 작을 때 판이 줄바꿈되는거 방지
+
+				$('#main').on('click', 'button', function () {	// 판 위를 클릭했을 때
+					if (back_arr.length == 0)	// 첫 돌이면
+						start = true;
+					else if (!start)
+						return;
+					var ehf = board_arr[parseInt($(this).attr('data-index') / SIZE)][$(this).attr('data-index') % SIZE];
+					if (ehf.color !== null)	// 돌이 있으면
+						return;
+					ehf.color = color;
+					$(this).text((color) ? 'O' : 'X');
+					back_arr.push(ehf);
+					go(ehf);
+					color = (color) ? false : true;
+					return;
+				});
+
+				$('#main').on('contextmenu', function () {	// 판 위에서 우클릭했을 때
+					$('input[value="무르기"]').click();
+					return false;	// 우클릭 메뉴 뜨는 거 방지
+				});
+
+				$('input[value="무르기"]').click(function () {	// 무르기 버튼을 눌렀을 때
+					if (!start || back_arr.length == 0)
+						return;
+					var tmp = back_arr.pop();
+					tmp.color = null;
+					tmp.node.empty();
+					color = (color) ? false : true;
+					return;
+				});
+
+				$('input[value="초기화"]').click(function () {	// 초기화 버튼을 눌렀을 때
+					if (back_arr.length == 0)
+						return;
+					$('#main').slideToggle('slow', function () {
+						$('button').empty();
+						each2(board_arr, function (index1, item1, index2, item2) {
+							item2.color = null;
+							return;
+						});
+						back_arr = [];
+						color = false;
+						start = false;
+						return;
+					}).slideToggle('slow');
+					return;
+				});
+
+				$('html').on('dblclick', function () {
+					$('body').css('visibility', ($('body').css('visibility') == 'hidden') ? 'visible' : 'hidden');
+					return false;
+				});
+				return;
+			});
+
+			function each2(arr, fn)	// 이중 for문을 탐색하는 each 함수, fn에서 false를 반환하면 탐색 취소
+			{
+				var tmp = false;
+				$.each(arr, function (index1, item1) {
+					if (tmp)
+						return;
+					$.each(item1, function (index2, item2) {
+						if (tmp)
+							return;
+						tmp = (fn(index1, item1, index2, item2) === false) ? true : false;
+						return;
+					});
+					return;
+				});
+				return;
+			}
+			function go(ehf)
+			{
+				function count(num)	// 특정 방향의 돌 개수를 세는 함수
+				{
+					var tmp = (this == undefined) ? 1 : this.toString();
+					var i = ehf.i;
+					var j = ehf.j;
+					while (true)
+					{
+						switch (num)
+						{
+						case 1:
+							i--;
+							j--;
+							break;
+						case 2:
+							i--;
+							break;
+						case 3:
+							i--;
+							j++;
+							break;
+						case 4:
+							j--;
+							break;
+						case 6:
+							j++;
+							break;
+						case 7:
+							i++;
+							j--;
+							break;
+						case 8:
+							i++;
+							break;
+						case 9:
+							i++;
+							j++;
+							break;
+						}
+						if (board_arr[i] == undefined || board_arr[i][j] == undefined || board_arr[i][j].color === null || board_arr[i][j].color !== ehf.color)	// 없거나 비어있거나 상대 돌이면
+							break;
+						tmp++;	// 내 돌일 때
+					}
+					return {
+						count: count,	// 체이닝
+						toString: function () {	// 돌의 개수
+							return tmp;
+						}
+					};
+				}
+
+				if (count(2).count(8) == SIZE || count(4).count(6) == SIZE || count(1).count(9) == SIZE || count(3).count(7) == SIZE)
+				{
+					alert(((color) ? 'O' : 'X') + '의 승리입니다!!!');
+					start = false;
+				}
+				else if (back_arr.length == SIZE * SIZE)
+				{
+					alert('무승부입니다!!!');
+					start = false;
+				}
+				return;
+			}
+		</script>
+	</head>
+	<body>
+		<div>
+			<input type="button" value="무르기"> <input type="button" value="초기화">
+		</div>
+		<div id="main"></div>
+	</body>
+</html>

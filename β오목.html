@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="ko">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width">
+		<title>오목</title>
+		<style>
+			body {
+				text-align: center;
+			}
+			div {
+				margin: 10px;
+			}
+			fieldset {
+				display: inline-block;
+				margin: 0 50px;
+			}
+			select {
+				margin: 0 0 10px 0;
+			}
+			#main {
+				margin: 0 auto;
+			}
+			button {
+				margin: 0;
+				padding: 0;
+				width: 40px;
+				height: 40px;
+				font-size: 55pt;
+				text-align: center;
+				line-height: 40px;
+				vertical-align: top;
+				background-color: #DCB35C;
+				border-style: none;
+				background-repeat: no-repeat;
+				background-position: -3px 0px;
+			}
+		</style>
+		<script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+		<script>
+			"use strict";
+			function Ehf(node, i, j)
+			{
+				this.node = node;	// 문서 객체
+				this.i = i;	// 배열의 첫번째 인덱스
+				this.j = j;	// 배열의 두번째 인덱스
+				this.color = null;	// true = 검은돌, false = 흰돌, null = 비어있는 곳
+			}
+
+			var SIZE = 15;	// 바둑판 19x19, 오목판 15x15
+			var board_arr, back_arr = [];
+			var color = true;	// true = 검은돌, false = 흰돌
+			var start = false;
+
+			$(document).ready(function () {
+				var tmp;
+				board_arr = new Array(SIZE);
+				for (var i = 0; i < SIZE; i++)
+				{
+					board_arr[i] = new Array(SIZE);
+					for (var j = 0; j < SIZE; j++)
+					{
+						tmp = $('<button></button>').attr('data-index', i * SIZE + j);	// data-index는 나중에 객체를 찾을 때 사용
+						if (i == 0)
+						{
+							if (j == 0)
+								tmp.css('background-image', "url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOvwAADr8BOAVTJAAAABh0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMC43i4tTSQAAAKNJREFUaEPtzzEKAkEUBNG9/6VHDUy0koZeoaQH3gSVfPo65/wFjEYYjTAaYTTCaITRCKMRRiOMRhiNMBphNMJohNEIoxFGI4xGGI0wGmE0wmiE0QijEcam53t996PjTV8H70LHm96HPnsbxqYNCWFs2pAQxqYNCWFs2pAQxqYNCWFs2pAQxqYNCWFs2pAQxqYNCWFs2pAQxqYNCWFs+s2Qcz0APZdpId7fNOEAAAAASUVORK5CYII=')");
+							else if (j == SIZE - 1)
+								tmp.css('background-image', "url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOvwAADr8BOAVTJAAAABh0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMC43i4tTSQAAAJxJREFUaEPtzzEKxDAUA9Hc/9Je0manESjFBBmei2k+us45n4DRCKMRRiOMRhiNMBphNMJohNEIoxFGI4xGGI0wGmE0wmiE0QijEUYjjEYYjTAaYTS63/2/7nm47X5/R9/wPNyGsWlDQhibNiSEsWlDQhibNiSEsWlDQhibNiSEsWlDQhibNiSEsWlDQhibNiSEsWlDQhibNiRyrh9iTmkhUzR4YQAAAABJRU5ErkJggg==')");
+							else
+								tmp.css('background-image', "url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOvwAADr8BOAVTJAAAABh0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMC43i4tTSQAAAJxJREFUaEPt0TEKxDAAA8H8/9MOKa4J2wjEwQYZxsU2Rvg653wCRiOMRhiNMBphNMJohNEIoxFGI4xGGI0wGmE0wmiE0QijEUYjjEYYjTAaYTTCaITR6DnP/QUYfeibmn4PvXsbxqYNCWFs2pAQxqYNCWFs2pAQxqYNCWFs2pAQxqYNCWFs2pAQxqYNCWFs2pAQxqYNCWFs+s+Qc93O0QmBfeMjGwAAAABJRU5ErkJggg==')");
+						}
+						else if (i == SIZE - 1)
+						{
+							if (j == 0)
+								tmp.css('background-image', "url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOvwAADr8BOAVTJAAAABh0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMC43i4tTSQAAAJ9JREFUaEPtzzEKw0AUA1Hf/9Ibp840Am0xQYZnzLj46DnnXPU+39f7yf9bMDZtSAhj04aEMDZtSAhj04aEMDZtSAhj04aEMDZtSAhj04aEMDZtSAhj04aEMDZtSAhj098NuY6ON/0cvIWOG2E0wmiE0QijEUYjjEYYjTAaYTTCaITRCKMRRiOMRhiNMBphNMJohNEIoxFGI4xGGH3O8wGy6Gkh9DaWuAAAAABJRU5ErkJggg==')");
+							else if (j == SIZE - 1)
+								tmp.css('background-image', "url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOvwAADr8BOAVTJAAAABh0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMC43i4tTSQAAAKZJREFUaEPtzzEKgEAQBEH//+lTAxPtZGBOaFihRNpgmWOttdX13K/rk/+3YGyaISGMTTMkhLFphoQwNs2QEMamGRLC2DRDQhibZkgIY9MMCWFsmiEhjE0zJISxaYaEMDb9NuQ5tNv7cNv9fI7u8D7chtEIoxFGI4xGGI0wGmE0wmiE0QijEUYjjEYYjTAaYTTCaITRCKMRRiOMRhiNMBphNMLos44T159pId75VwkAAAAASUVORK5CYII=')");
+							else
+								tmp.css('background-image', "url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOvwAADr8BOAVTJAAAABh0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMC43i4tTSQAAAJ9JREFUaEPt0bEKhEAAA1H//6f3tLhumkDuYCTCE5ktluB1zvmp+3le9yeft2Bs2pAQxqYNCWFs2pAQxqYNCWFs2pAQxqYNCWFs2pAQxqYNCWFs2pAQxqYNCWFs2pAQxqa/Dfle9AIYfeg3GWE0wmiE0QijEUYjjEYYjTAaYTTCaITRCKMRRiOMRhiNMBphNMJohNEIoxFGI4xGGH3O9QFEMQmBu/D2OQAAAABJRU5ErkJggg==')");
+						}
+						else
+						{
+							if (j == 0)
+								tmp.css('background-image', "url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOvwAADr8BOAVTJAAAABh0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMC43i4tTSQAAAKRJREFUaEPtz7EKwlAUBFH//6efsbDRaQYmFrKBE8KkuOzjnHOr63m9rk/+X8FY2hAJY2lDJIylDZEwljZEwljaEAljaUMkjKUNkTCWNkTCWNoQCWNpQySMpQ2RMJb+bsjt6Hjp6+Bd6Hjpfeiz1zCWNkTCWNoQCWNpQySMpQ2RMJY2RMJY2hAJY2lDJIylDZEwljZEwljaEAljaUMkjKXfDDmPJ/ceCYHttDhbAAAAAElFTkSuQmCC')");
+							else if (j == SIZE - 1)
+								tmp.css('background-image', "url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOvwAADr8BOAVTJAAAABh0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMC43i4tTSQAAAKJJREFUaEPtzzEKhAAUxFDvf2lXi23cNANxqwhPJBafOc7zfNX13K/rk/9bMJoaMsJoasgIo6khI4ymhowwmhoywmhqyAijqSEjjKaGjDCaGjLCaGrICKOpISOMpr8N+R562/Ow7X5+jr7hediG0dSQEUZTQ0YYTQ0ZYTQ1ZITR1JARRlNDRhhNDRlhNDVkhNHUkBFGU0NGGE0NGWE0NWRyHh8b5AmB8dCKKgAAAABJRU5ErkJggg==')");
+							else
+								tmp.css('background-image', "url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOwAAADsABataJCQAAABh0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMC43i4tTSQAAAKRJREFUaEPt0bEKg0AABFH//6eNKWzCNAMTIWGFJzIWx3LHeZ5fdT3v1/XJ/ysYSxsiYSxtiISxtCESxtKGSBhLGyJhLG2IhLG0IRLG0oZIGEsbImEsbYiEsbQhEsbSY0Pug/4Axt9D11S6D/rsNYylDZEwljZEwljaEAljaUMkjKUNkTCWNkTCWNoQCWNpQySMpQ2RMJY2RMJY2hAJY+mZIefxAohnqdJ8OsEgAAAAAElFTkSuQmCC')");
+						}
+						tmp.appendTo('#main');
+						board_arr[i][j] = new Ehf(tmp, i, j);
+					}
+					$('#main').append($('<br>'));
+				}
+				$('#main').css('width', ($('button').outerWidth() * SIZE) + 'px');	// 창 크기가 작을 때 판이 줄바꿈되는거 방지
+
+				$('#main').on('click', 'button', function () {	// 판 위를 클릭했을 때
+					if (back_arr.length == 0)	// 첫 돌이면
+					{
+						start = true;
+						$('fieldset > *:not(input:button)').attr('disabled', 'disabled');
+					}
+					else if (!start)
+						return;
+					var ehf = board_arr[parseInt($(this).attr('data-index') / SIZE)][$(this).attr('data-index') % SIZE];
+					if (ehf.color !== null)	// 돌이 있으면
+						return;
+					ehf.color = color;
+					$(this).text('●').css('color', (color) ? 'black' : 'white');
+					back_arr.push(ehf);
+					go(ehf);
+					color = (color) ? false : true;
+					return;
+				});
+
+				$('#main').on('contextmenu', function () {	// 판 위에서 우클릭했을 때
+					$('input[value="무르기"]').click();
+					return false;	// 우클릭 메뉴 뜨는 거 방지
+				});
+
+				$('select').change(function () {	// 룰을 바꿨을 때 (select)
+					switch ($(this).val())
+					{
+					case '고모쿠룰':
+						$('#gmr_3').prop('checked', false);
+						$('#gmr_4').prop('checked', false);
+						$('#gmr_an').prop('checked', false);
+						$('#gmr_rma').prop('checked', false);
+						$('#gmr_vo').prop('checked', false);
+						$('#qor_3').prop('checked', false);
+						$('#qor_4').prop('checked', false);
+						$('#qor_an').prop('checked', false);
+						$('#qor_rma').prop('checked', false);
+						$('#qor_vo').prop('checked', false);
+						break;
+					case '일반룰':
+						$('#gmr_3').prop('checked', true);
+						$('#gmr_4').prop('checked', false);
+						$('#gmr_an').prop('checked', true);
+						$('#gmr_rma').prop('checked', false);
+						$('#gmr_vo').prop('checked', false);
+						$('#qor_3').prop('checked', true);
+						$('#qor_4').prop('checked', false);
+						$('#qor_an').prop('checked', true);
+						$('#qor_rma').prop('checked', false);
+						$('#qor_vo').prop('checked', false);
+						break;
+					case '렌주룰':
+						$('#gmr_3').prop('checked', true);
+						$('#gmr_4').prop('checked', true);
+						$('#gmr_an').prop('checked', false);
+						$('#gmr_rma').prop('checked', true);
+						$('#gmr_vo').prop('checked', true);
+						$('#qor_3').prop('checked', false);
+						$('#qor_4').prop('checked', false);
+						$('#qor_an').prop('checked', false);
+						$('#qor_rma').prop('checked', false);
+						$('#qor_vo').prop('checked', false);
+						break;
+					}
+					return;
+				});
+
+				$('input:checkbox').change(function () {	// 룰을 바꿨을 때 (checkbox)
+					if ($(this).is('#gmr_an:checked'))
+						$('#gmr_rma').prop('checked', false);
+					else if ($(this).is('#gmr_rma:checked'))
+						$('#gmr_an').prop('checked', false);
+					else if ($(this).is('#qor_an:checked'))
+						$('#qor_rma').prop('checked', false);
+					else if ($(this).is('#qor_rma:checked'))
+						$('#qor_an').prop('checked', false);
+					var list = 0;
+					if ($('#gmr_3').prop('checked'))	// 흑 3-3 금지
+						list |= 1;
+					if ($('#gmr_4').prop('checked'))	// 흑 4-4 금지
+						list |= 2;
+					if ($('#gmr_an').prop('checked'))	// 흑 장목 무효
+						list |= 4;
+					if ($('#gmr_rma').prop('checked'))	// 흑 장목 금지
+						list |= 8;
+					if ($('#gmr_vo').prop('checked'))	// 흑 금수 패배
+						list |= 16;
+					if ($('#qor_3').prop('checked'))	// 백 3-3 금지
+						list |= 32;
+					if ($('#qor_4').prop('checked'))	// 백 4-4 금지
+						list |= 64;
+					if ($('#qor_an').prop('checked'))	// 백 장목 무효
+						list |= 128;
+					if ($('#qor_rma').prop('checked'))	// 백 장목 금지
+						list |= 256;
+					if ($('#qor_vo').prop('checked'))	// 백 금수 패배
+						list |= 512;
+					switch (list)
+					{
+					case 0:
+						$('select').val('고모쿠룰');
+						break;
+					case 165:
+						$('select').val('일반룰');
+						break;
+					case 27:
+						$('select').val('렌주룰');
+						break;
+					default:
+						$('select').val('');
+						break;
+					}
+					return;
+				});
+
+				$('input[value="무르기"]').click(function () {	// 무르기 버튼을 눌렀을 때
+					if (!start || back_arr.length == 0)
+						return;
+					var tmp = back_arr.pop();
+					tmp.color = null;
+					tmp.node.empty();
+					color = (color) ? false : true;
+					return;
+				});
+
+				$('input[value="초기화"]').click(function () {	// 초기화 버튼을 눌렀을 때
+					$('fieldset > *:not(input:button)').removeAttr('disabled');
+					if (back_arr.length == 0)
+						return;
+					$('#main').slideToggle('slow', function () {
+						$('button').empty();
+						each2(board_arr, function (index1, item1, index2, item2) {
+							item2.color = null;
+							return;
+						});
+						back_arr = [];
+						color = true;
+						start = false;
+						return;
+					}).slideToggle('slow');
+					return;
+				});
+
+				$('select').val('렌주룰').change();	// 렌주룰을 기본값으로 지정
+
+				$('html').on('dblclick', function () {
+					$('body').css('visibility', ($('body').css('visibility') == 'hidden') ? 'visible' : 'hidden');
+					return false;
+				});
+				return;
+			});
+
+			function each2(arr, fn)	// 이중 for문을 탐색하는 each 함수, fn에서 false를 반환하면 탐색 취소
+			{
+				var tmp = false;
+				$.each(arr, function (index1, item1) {
+					if (tmp)
+						return;
+					$.each(item1, function (index2, item2) {
+						if (tmp)
+							return;
+						tmp = (fn(index1, item1, index2, item2) === false) ? true : false;
+						return;
+					});
+					return;
+				});
+				return;
+			}
+			function go(ehf)
+			{
+				function count(num)	// 특정 방향의 돌 개수를 세는 함수
+				{
+					var strict = (this == undefined) ? 1 : this.toString();
+					var loose = (this == undefined) ? 1 : this.loose;
+					var wall = (this == undefined) ? 0 : this.wall;
+					var beyond = (this == undefined) ? 0 : this.beyond;
+					var tmp = 0;
+					var i = ehf.i;
+					var j = ehf.j;
+					while (true)
+					{
+						switch (num)
+						{
+						case 1:
+							i--;
+							j--;
+							break;
+						case 2:
+							i--;
+							break;
+						case 3:
+							i--;
+							j++;
+							break;
+						case 4:
+							j--;
+							break;
+						case 6:
+							j++;
+							break;
+						case 7:
+							i++;
+							j--;
+							break;
+						case 8:
+							i++;
+							break;
+						case 9:
+							i++;
+							j++;
+							break;
+						}
+						if (tmp > 0)
+						{
+							if (board_arr[i] == undefined || board_arr[i][j] == undefined)	// 없으면
+							{
+								if (tmp == 2)
+									wall++;
+								else
+									beyond |= ((beyond & 1) == 0) ? 1 : 2;
+								break;
+							}
+							else if (board_arr[i][j].color === null)	// 비어 있으면
+								break;
+							else if (board_arr[i][j].color !== ehf.color)	// 다른 색이면
+							{
+								if (tmp == 2)
+									wall++;
+								else
+									beyond |= ((beyond & 1) == 0) ? 1 : 2;
+								break;
+							}
+							else if (tmp == 1)
+							{
+								tmp = 2;
+								beyond |= ((beyond & 4) == 0) ? 4 : 8;
+							}
+							loose++;	// 같은 색일 때
+							continue;
+						}
+						else if (board_arr[i] == undefined || board_arr[i][j] == undefined)	// 없으면
+						{
+							wall++;
+							break;
+						}
+						else if (board_arr[i][j].color === null)	// 비어 있으면
+						{
+							tmp = 1;
+							continue;
+						}
+						else if (board_arr[i][j].color !== ehf.color)	// 다른 색이면
+						{
+							wall++;
+							break;
+						}
+						strict++;	// 같은 색일 때
+						loose++;
+					}
+					return {
+						count: count,	// 체이닝
+						loose: loose,	// 한 칸 건너띈 것도 셌을 때
+						wall: wall,	// 닫혔는지 여부
+						beyond: beyond,	// 한 칸 건너띄었는지 그리고 건너띈 곳에 다른 색이 있는지. 이진수
+						toString: function () {	// 돌의 개수
+							return strict;
+						}
+					};
+				}
+				function check()
+				{
+					if ($((ehf.color) ? '#gmr_3' : '#qor_3').prop('checked') && tmp.loose == 3 && tmp.wall == 0 && (tmp.beyond & 10) == 0)	// 3-3 금지
+						list |= ((list & 4) == 0) ? 4 : 8;
+					else if ($((ehf.color) ? '#gmr_4' : '#qor_4').prop('checked') && tmp.loose == 4 && ((tmp == 4 && tmp.wall != 2) || tmp != 4) && (tmp.beyond & 8) == 0)	// 4-4 금지
+						list |= ((list & 16) == 0) ? 16 : 32;
+					else if ($((ehf.color) ? '#gmr_4' : '#qor_4').prop('checked') && tmp + tmp.loose == 8 && (tmp.beyond & 8) != 0)	// 생소한 모양의 4-4
+						list |= 48;
+					else if ($((ehf.color) ? '#gmr_an' : '#qor_an').prop('checked') && tmp > 5)	// 장목 무효
+						return;
+					else if ($((ehf.color) ? '#gmr_rma' : '#qor_rma').prop('checked') && tmp > 5)	// 장목 금지
+						list |= 2;
+					else if (tmp >= 5)	// 승리
+						list |= 1;
+					return;
+				}
+
+				var tmp, list = 0;	// 이진수, 1: 승리, 10: 장목, '1'100: 쌍삼, '1'10000: 쌍사
+				tmp = count(2).count(8);	// 위쪽.아래쪽
+				check();
+				tmp = count(4).count(6);	// 왼쪽.오른쪽
+				check();
+				tmp = count(1).count(9);	// 왼위쪽.오른아래쪽
+				check();
+				tmp = count(3).count(7);	// 오른위쪽.왼아래쪽
+				check();
+				if ((list & 1) != 0)
+				{
+					alert(((color) ? '흑' : '백') + '의 승리입니다!!!');
+					start = false;
+				}
+				else if ((list & 8) != 0)
+				{
+					alert('3-3입니다.');
+					if ($((ehf.color) ? '#gmr_vo' : '#qor_vo').prop('checked'))
+					{
+						alert(((color) ? '백' : '흑') + '의 승리입니다!!!');
+						start = false;
+					}
+					else
+						$('input[value="무르기"]').click();
+				}
+				else if ((list & 32) != 0)
+				{
+					alert('4-4입니다.');
+					if ($((ehf.color) ? '#gmr_vo' : '#qor_vo').prop('checked'))
+					{
+						alert(((color) ? '백' : '흑') + '의 승리입니다!!!');
+						start = false;
+					}
+					else
+						$('input[value="무르기"]').click();
+				}
+				else if ((list & 2) != 0)
+				{
+					alert('장목입니다.');
+					if ($((ehf.color) ? '#gmr_vo' : '#qor_vo').prop('checked'))
+					{
+						alert(((color) ? '백' : '흑') + '의 승리입니다!!!');
+						start = false;
+					}
+					else
+						$('input[value="무르기"]').click();
+				}
+				return;
+			}
+		</script>
+	</head>
+	<body>
+		<div>
+			<fieldset>
+				<legend>흑</legend>
+				<input id="gmr_3" type="checkbox"><label for="gmr_3">3-3 금지</label>
+				<input id="gmr_4" type="checkbox"><label for="gmr_4">4-4 금지</label><br>
+				<input id="gmr_an" type="checkbox"><label for="gmr_an">장목 무효</label>
+				<input id="gmr_rma" type="checkbox"><label for="gmr_rma">장목 금지</label>
+				<input id="gmr_vo" type="checkbox"><label for="gmr_vo">금수 패배</label>
+			</fieldset>
+			<fieldset>
+				<select>
+					<option>고모쿠룰</option>
+					<option>일반룰</option>
+					<option>렌주룰</option>
+				</select><br>
+				<input type="button" value="무르기"> <input type="button" value="초기화">
+			</fieldset>
+			<fieldset>
+				<legend>백</legend>
+				<input id="qor_3" type="checkbox"><label for="qor_3">3-3 금지</label>
+				<input id="qor_4" type="checkbox"><label for="qor_4">4-4 금지</label><br>
+				<input id="qor_an" type="checkbox"><label for="qor_an">장목 무효</label>
+				<input id="qor_rma" type="checkbox"><label for="qor_rma">장목 금지</label>
+				<input id="qor_vo" type="checkbox"><label for="qor_vo">금수 패배</label>
+			</fieldset>
+		</div>
+		<div id="main"></div>
+	</body>
+</html>

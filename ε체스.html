@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="ko">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width">
+		<title>체스</title>
+		<style>
+			body {
+				text-align: center;
+			}
+			div {
+				margin: 10px;
+			}
+			#main {
+				margin: 0 auto;
+			}
+			button {
+				margin: 0;
+				padding: 0;
+				width: 80px;
+				height: 80px;
+				font-size: 55pt;
+				text-align: center;
+				line-height: 80px;
+				vertical-align: top;
+				border: 1px solid orange;
+				text-shadow: 3px 0 gray, -3px 0 gray, 0 3px gray, 0 -3px gray;	/* 크롬 호환 */
+				text-shadow: 0 0 10px 5px gray;	/* 익스플로러 호환 */
+			}
+			#main button:nth-child(2n) {
+				background-color: black;
+			}
+			#main button:nth-child(2n+1) {
+				background-color: white;
+			}
+			.select {
+				background-color: #FF8080 !important;
+			}
+			#popup {
+				display: none;
+				position: absolute;
+				z-index: 10;
+				margin: 0;
+				padding: 30px;
+				text-align: center;
+				white-space: nowrap;
+				background-color: rgb(222, 222, 222);
+				border: 3px solid gray;
+				border-radius: 20px;
+				box-shadow: 5px 5px 10px black;
+				opacity: 0.95;
+			}
+			#popup p {
+				margin-top: 0;
+				font-weight: 700;
+			}
+		</style>
+		<script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+		<script>
+			"use strict";
+			function Ehf(node, i, j)
+			{
+				this.node = node;	// 문서 객체
+				this.i = i;	// 배열의 첫번째 인덱스
+				this.j = j;	// 배열의 두번째 인덱스
+				this.name = null;	// 말 객체, null = 비어있는 곳
+			}
+			function Back(option)
+			{
+				this.from = option.from;	// 이동하기 전 노드
+				this.to = option.to;	// 이동한 후 노드
+				this.dead = option.dead || null;	// 잡은 말
+				this.etc = option.etc || 0;	// 1: 처음 움직일 때, 2: 승급, 3: 캐슬링, 4: 앙파상, 5: 앙파상 포기, 6: 처음 움직일 때 + 앙파상 포기
+				this.enpassant;	// 앙파상일 때 위치 저장
+			}
+			function Rook(color)	// 룩
+			{
+				this.color = color;	// true = 검은돌, false = 흰돌
+				this.move = false;	// 한번이라도 움직였는가
+				this.select_arr;	// 이동 가능한 곳
+			}
+			Rook.prototype.toString = function () {
+				return '♜';
+			};
+			Rook.prototype.select = function (ehf) {
+				this.select_arr = [];
+				var i, j;
+				i = ehf.i - 1;
+				j = ehf.j;
+				while (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color))
+				{
+					if (!check(ehf, board_arr[i][j]))
+						this.select_arr.push(board_arr[i][j]);
+					if (board_arr[i][j].name != null && board_arr[i][j].name.color != this.color)
+						break;
+					i--;
+				}
+				i = ehf.i;
+				j = ehf.j - 1;
+				while (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color))
+				{
+					if (!check(ehf, board_arr[i][j]))
+						this.select_arr.push(board_arr[i][j]);
+					if (board_arr[i][j].name != null && board_arr[i][j].name.color != this.color)
+						break;
+					j--;
+				}
+				i = ehf.i;
+				j = ehf.j + 1;
+				while (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color))
+				{
+					if (!check(ehf, board_arr[i][j]))
+						this.select_arr.push(board_arr[i][j]);
+					if (board_arr[i][j].name != null && board_arr[i][j].name.color != this.color)
+						break;
+					j++;
+				}
+				i = ehf.i + 1;
+				j = ehf.j;
+				while (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color))
+				{
+					if (!check(ehf, board_arr[i][j]))
+						this.select_arr.push(board_arr[i][j]);
+					if (board_arr[i][j].name != null && board_arr[i][j].name.color != this.color)
+						break;
+					i++;
+				}
+				return;
+			};
+			Rook.prototype.check = function (ehf) {
+				var check_arr = [];
+				var i, j;
+				i = ehf.i - 1;
+				j = ehf.j;
+				while (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color))
+				{
+					check_arr.push(board_arr[i][j]);
+					if (board_arr[i][j].name != null && board_arr[i][j].name.color != this.color)
+						break;
+					i--;
+				}
+				i = ehf.i;
+				j = ehf.j - 1;
+				while (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color))
+				{
+					check_arr.push(board_arr[i][j]);
+					if (board_arr[i][j].name != null && board_arr[i][j].name.color != this.color)
+						break;
+					j--;
+				}
+				i = ehf.i;
+				j = ehf.j + 1;
+				while (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color))
+				{
+					check_arr.push(board_arr[i][j]);
+					if (board_arr[i][j].name != null && board_arr[i][j].name.color != this.color)
+						break;
+					j++;
+				}
+				i = ehf.i + 1;
+				j = ehf.j;
+				while (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color))
+				{
+					check_arr.push(board_arr[i][j]);
+					if (board_arr[i][j].name != null && board_arr[i][j].name.color != this.color)
+						break;
+					i++;
+				}
+				return check_arr;
+			};
+			function Bishop(color)	// 비숍
+			{
+				this.color = color;	// true = 검은돌, false = 흰돌
+				this.move = false;	// 한번이라도 움직였는가
+				this.select_arr;	// 이동 가능한 곳
+			}
+			Bishop.prototype.toString = function () {
+				return '♝';
+			};
+			Bishop.prototype.select = function (ehf) {
+				this.select_arr = [];
+				var i, j;
+				i = ehf.i - 1;
+				j = ehf.j - 1;
+				while (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color))
+				{
+					if (!check(ehf, board_arr[i][j]))
+						this.select_arr.push(board_arr[i][j]);
+					if (board_arr[i][j].name != null && board_arr[i][j].name.color != this.color)
+						break;
+					i--;
+					j--;
+				}
+				i = ehf.i - 1;
+				j = ehf.j + 1;
+				while (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color))
+				{
+					if (!check(ehf, board_arr[i][j]))
+						this.select_arr.push(board_arr[i][j]);
+					if (board_arr[i][j].name != null && board_arr[i][j].name.color != this.color)
+						break;
+					i--;
+					j++;
+				}
+				i = ehf.i + 1;
+				j = ehf.j - 1;
+				while (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color))
+				{
+					if (!check(ehf, board_arr[i][j]))
+						this.select_arr.push(board_arr[i][j]);
+					if (board_arr[i][j].name != null && board_arr[i][j].name.color != this.color)
+						break;
+					i++;
+					j--;
+				}
+				i = ehf.i + 1;
+				j = ehf.j + 1;
+				while (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color))
+				{
+					if (!check(ehf, board_arr[i][j]))
+						this.select_arr.push(board_arr[i][j]);
+					if (board_arr[i][j].name != null && board_arr[i][j].name.color != this.color)
+						break;
+					i++;
+					j++;
+				}
+				return;
+			};
+			Bishop.prototype.check = function (ehf) {
+				var check_arr = [];
+				var i, j;
+				i = ehf.i - 1;
+				j = ehf.j - 1;
+				while (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color))
+				{
+					check_arr.push(board_arr[i][j]);
+					if (board_arr[i][j].name != null && board_arr[i][j].name.color != this.color)
+						break;
+					i--;
+					j--;
+				}
+				i = ehf.i - 1;
+				j = ehf.j + 1;
+				while (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color))
+				{
+					check_arr.push(board_arr[i][j]);
+					if (board_arr[i][j].name != null && board_arr[i][j].name.color != this.color)
+						break;
+					i--;
+					j++;
+				}
+				i = ehf.i + 1;
+				j = ehf.j - 1;
+				while (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color))
+				{
+					check_arr.push(board_arr[i][j]);
+					if (board_arr[i][j].name != null && board_arr[i][j].name.color != this.color)
+						break;
+					i++;
+					j--;
+				}
+				i = ehf.i + 1;
+				j = ehf.j + 1;
+				while (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color))
+				{
+					check_arr.push(board_arr[i][j]);
+					if (board_arr[i][j].name != null && board_arr[i][j].name.color != this.color)
+						break;
+					i++;
+					j++;
+				}
+				return check_arr;
+			};
+			function Queen(color)	// 퀸
+			{
+				this.color = color;	// true = 검은돌, false = 흰돌
+				this.move = false;	// 한번이라도 움직였는가
+				this.select_arr;	// 이동 가능한 곳
+			}
+			Queen.prototype.toString = function () {
+				return '♛';
+			};
+			Queen.prototype._select1 = Rook.prototype.select;
+			Queen.prototype._select2 = Bishop.prototype.select;
+			Queen.prototype.select = function (ehf) {	// 상속 꼼수;;
+				this._select1(ehf);
+				var tmp = this.select_arr;
+				this._select2(ehf);
+				this.select_arr = tmp.concat(this.select_arr);
+				return;
+			};
+			Queen.prototype._check1 = Rook.prototype.check;
+			Queen.prototype._check2 = Bishop.prototype.check;
+			Queen.prototype.check = function (ehf) {	// 상속 꼼수;;
+				return this._check1(ehf).concat(this._check2(ehf));
+			};
+			function Knight(color)	// 나이트
+			{
+				this.color = color;	// true = 검은돌, false = 흰돌
+				this.move = false;	// 한번이라도 움직였는가
+				this.select_arr;	// 이동 가능한 곳
+			}
+			Knight.prototype.toString = function () {
+				return '♞';
+			};
+			Knight.prototype.select = function (ehf) {
+				this.select_arr = [];
+				var i, j;
+				i = ehf.i - 2;
+				j = ehf.j - 1;
+				if (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color) && !check(ehf, board_arr[i][j]))
+					this.select_arr.push(board_arr[i][j]);
+				j = ehf.j + 1;
+				if (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color) && !check(ehf, board_arr[i][j]))
+					this.select_arr.push(board_arr[i][j]);
+				i = ehf.i - 1;
+				j = ehf.j + 2;
+				if (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color) && !check(ehf, board_arr[i][j]))
+					this.select_arr.push(board_arr[i][j]);
+				i = ehf.i + 1;
+				if (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color) && !check(ehf, board_arr[i][j]))
+					this.select_arr.push(board_arr[i][j]);
+				i = ehf.i + 2;
+				j = ehf.j + 1;
+				if (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color) && !check(ehf, board_arr[i][j]))
+					this.select_arr.push(board_arr[i][j]);
+				j = ehf.j - 1;
+				if (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color) && !check(ehf, board_arr[i][j]))
+					this.select_arr.push(board_arr[i][j]);
+				i = ehf.i + 1;
+				j = ehf.j - 2;
+				if (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color) && !check(ehf, board_arr[i][j]))
+					this.select_arr.push(board_arr[i][j]);
+				i = ehf.i - 1;
+				if (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color) && !check(ehf, board_arr[i][j]))
+					this.select_arr.push(board_arr[i][j]);
+				return;
+			};
+			Knight.prototype.check = function (ehf) {
+				var check_arr = [];
+				var i, j;
+				i = ehf.i - 2;
+				j = ehf.j - 1;
+				if (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color))
+					check_arr.push(board_arr[i][j]);
+				j = ehf.j + 1;
+				if (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color))
+					check_arr.push(board_arr[i][j]);
+				i = ehf.i - 1;
+				j = ehf.j + 2;
+				if (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color))
+					check_arr.push(board_arr[i][j]);
+				i = ehf.i + 1;
+				if (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color))
+					check_arr.push(board_arr[i][j]);
+				i = ehf.i + 2;
+				j = ehf.j + 1;
+				if (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color))
+					check_arr.push(board_arr[i][j]);
+				j = ehf.j - 1;
+				if (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color))
+					check_arr.push(board_arr[i][j]);
+				i = ehf.i + 1;
+				j = ehf.j - 2;
+				if (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color))
+					check_arr.push(board_arr[i][j]);
+				i = ehf.i - 1;
+				if (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color))
+					check_arr.push(board_arr[i][j]);
+				return check_arr;
+			};
+			function King(color)	// 킹
+			{
+				this.color = color;	// true = 검은돌, false = 흰돌
+				this.move = false;	// 한번이라도 움직였는가
+				this.select_arr;	// 이동 가능한 곳
+			}
+			King.prototype.toString = function () {
+				return '♚';
+			};
+			King.prototype.select = function (ehf) {
+				this.select_arr = [];
+				var i = ehf.i, j = ehf.j;
+				i--;
+				if (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color) && !check(ehf, board_arr[i][j]))
+					this.select_arr.push(board_arr[i][j]);
+				j++;
+				if (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color) && !check(ehf, board_arr[i][j]))
+					this.select_arr.push(board_arr[i][j]);
+				i++;
+				if (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color) && !check(ehf, board_arr[i][j]))
+					this.select_arr.push(board_arr[i][j]);
+				i++;
+				if (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color) && !check(ehf, board_arr[i][j]))
+					this.select_arr.push(board_arr[i][j]);
+				j--;
+				if (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color) && !check(ehf, board_arr[i][j]))
+					this.select_arr.push(board_arr[i][j]);
+				j--;
+				if (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color) && !check(ehf, board_arr[i][j]))
+					this.select_arr.push(board_arr[i][j]);
+				i--;
+				if (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color) && !check(ehf, board_arr[i][j]))
+					this.select_arr.push(board_arr[i][j]);
+				i--;
+				if (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color) && !check(ehf, board_arr[i][j]))
+					this.select_arr.push(board_arr[i][j]);
+				return;
+			}
+			King.prototype.check = function (ehf) {
+				var check_arr = [];
+				var i = ehf.i, j = ehf.j;
+				i--;
+				if (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color))
+					check_arr.push(board_arr[i][j]);
+				j++;
+				if (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color))
+					check_arr.push(board_arr[i][j]);
+				i++;
+				if (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color))
+					check_arr.push(board_arr[i][j]);
+				i++;
+				if (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color))
+					check_arr.push(board_arr[i][j]);
+				j--;
+				if (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color))
+					check_arr.push(board_arr[i][j]);
+				j--;
+				if (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color))
+					check_arr.push(board_arr[i][j]);
+				i--;
+				if (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color))
+					check_arr.push(board_arr[i][j]);
+				i--;
+				if (board_arr[i] != undefined && board_arr[i][j] != undefined && (board_arr[i][j].name == null || board_arr[i][j].name.color != this.color))
+					check_arr.push(board_arr[i][j]);
+				return check_arr;
+			}
+			function Pawn(color)	// 폰
+			{
+				this.color = color;	// true = 검은돌, false = 흰돌
+				this.move = false;	// 한번이라도 움직였는가
+				this.select_arr;	// 이동 가능한 곳
+			}
+			Pawn.prototype.toString = function () {
+				return '♟';
+			};
+			Pawn.prototype.select = function (ehf) {
+				this.select_arr = [];
+				var i = ehf.i, j = ehf.j;
+				i += (this.color) ? 1 : -1;
+				if (board_arr[i] != undefined && board_arr[i][j] != undefined && board_arr[i][j].name == null)
+				{
+					if(!check(ehf, board_arr[i][j]))
+						this.select_arr.push(board_arr[i][j]);
+					i += (this.color) ? 1 : -1;
+					if (!this.move && board_arr[i] != undefined && board_arr[i][j] != undefined && board_arr[i][j].name == null && !check(ehf, board_arr[i][j]))
+						this.select_arr.push(board_arr[i][j]);
+					i -= (this.color) ? 1 : -1;
+				}
+				j -= 1;
+				if (board_arr[i] != undefined && board_arr[i][j] != undefined && board_arr[i][j].name != null && board_arr[i][j].name.color != this.color && !check(ehf, board_arr[i][j]))
+					this.select_arr.push(board_arr[i][j]);
+				if (enpassant != null && enpassant.name instanceof Pawn && board_arr[ehf.i][j] == enpassant && !check(ehf, board_arr[i][j]))	// 앙파상
+					this.select_arr.push(board_arr[i][j]);
+				j += 2;
+				if (board_arr[i] != undefined && board_arr[i][j] != undefined && board_arr[i][j].name != null && board_arr[i][j].name.color != this.color && !check(ehf, board_arr[i][j]))
+					this.select_arr.push(board_arr[i][j]);
+				if (enpassant != null && enpassant.name instanceof Pawn && board_arr[ehf.i][j] == enpassant && !check(ehf, board_arr[i][j]))	// 앙파상
+					this.select_arr.push(board_arr[i][j]);
+				return;
+			};
+			Pawn.prototype.check = function (ehf) {
+				var check_arr = [];
+				var i = ehf.i, j = ehf.j;
+				i += (this.color) ? 1 : -1;
+				if (board_arr[i] != undefined && board_arr[i][j] != undefined && board_arr[i][j].name == null)
+				{
+					check_arr.push(board_arr[i][j]);
+					i += (this.color) ? 1 : -1;
+					if (!this.move && board_arr[i] != undefined && board_arr[i][j] != undefined && board_arr[i][j].name == null)
+						check_arr.push(board_arr[i][j]);
+					i -= (this.color) ? 1 : -1;
+				}
+				j -= 1;
+				if (board_arr[i] != undefined && board_arr[i][j] != undefined && board_arr[i][j].name != null && board_arr[i][j].name.color != this.color)
+					check_arr.push(board_arr[i][j]);
+				if (enpassant != null && enpassant.name instanceof Pawn && board_arr[ehf.i][j] == enpassant)	// 앙파상
+					check_arr.push(board_arr[i][j]);
+				j += 2;
+				if (board_arr[i] != undefined && board_arr[i][j] != undefined && board_arr[i][j].name != null && board_arr[i][j].name.color != this.color)
+					check_arr.push(board_arr[i][j]);
+				if (enpassant != null && enpassant.name instanceof Pawn && board_arr[ehf.i][j] == enpassant)	// 앙파상
+					check_arr.push(board_arr[i][j]);
+				return check_arr;
+			};
+
+			var SIZE = 8;	// 체스판 8x8
+			var board_arr, back_arr = [];
+			var color = false;	// true = 검은돌, false = 흰돌
+			var start = false;
+			var select;
+			var enpassant = null;	// 앙파상
+
+			$(document).ready(function () {
+				var tmp;
+				board_arr = new Array(SIZE);
+				for (var i = 0; i < SIZE; i++)
+				{
+					board_arr[i] = new Array(SIZE);
+					for (var j = 0; j < SIZE; j++)
+					{
+						tmp = $('<button></button>').attr('data-index', i * SIZE + j).appendTo('#main');	// data-index는 나중에 객체를 찾을 때 사용
+						board_arr[i][j] = new Ehf(tmp, i, j);
+					}
+					$('#main').append($('<br>'));
+				}
+				$('#main').css('width', ($('button').outerWidth() * SIZE) + 'px');	// 창 크기가 작을 때 판이 줄바꿈되는거 방지
+				ready();
+
+				$('#main').on('click', 'button', function () {	// 판 위를 클릭했을 때
+					if (back_arr.length == 0)	// 첫 돌이면
+						start = true;
+					else if (!start)
+						return;
+					if ($('#popup').css('display') != 'none')	// 승급 팝업이 떴을 때
+						return;
+					var ehf = board_arr[parseInt($(this).attr('data-index') / SIZE)][$(this).attr('data-index') % SIZE];
+					if ($(this).is('.select'))	// 색칠된 곳을 클릭했을 때
+					{
+						var tmp = new Back({
+							from: select,
+							to: ehf
+						});
+						if (!select.name.move)	// 처음 움직일 때
+						{
+							tmp.etc = 1;
+							if (select.name instanceof Pawn && Math.abs(select.i - ehf.i) == 2)	// 그게 폰이고 두 칸 움직였다면
+								enpassant = ehf	// 앙파상
+						}
+						if (ehf.name != null)
+						{
+							if (ehf.name.color != color)	// 상대 말을 잡았다면
+								tmp.dead = ehf.name;
+							else if (ehf.name instanceof King)	// 캐슬링
+							{
+								tmp.from = board_arr[ehf.i][(select.j < 4) ? 2 : 6];
+								tmp.to = board_arr[ehf.i][(select.j < 4) ? 3 : 5];
+								tmp.etc = 3;
+							}
+							else
+							{
+								tmp.from = board_arr[ehf.i][(ehf.j < 4) ? 2 : 6];
+								tmp.to = board_arr[ehf.i][(ehf.j < 4) ? 3 : 5];
+								tmp.etc = 3;
+							}
+							enpassant = null;
+						}
+						else if (enpassant != null && ehf != enpassant)	// 앙파상 권리가 있을 때
+						{
+							tmp.dead = enpassant.name;
+							tmp.enpassant = enpassant;	// 앙파상 임시 저장
+							if (select.name instanceof Pawn && ehf.i == ((enpassant.i < 4) ? enpassant.i - 1 : enpassant.i + 1) && ehf.j == enpassant.j)	// 앙파상
+							{
+								enpassant.name = null;
+								enpassant.node.empty();
+								tmp.etc = 4;
+							}
+							else	// 앙파상을 안쓰면
+								tmp.etc = (select.name.move) ? 5 : 6;
+							enpassant = null;
+						}
+						back_arr.push(tmp);
+						if (tmp.etc == 3)	// 캐슬링
+						{
+							if (ehf.name instanceof King)
+							{
+								board_arr[ehf.i][(select.j < 4) ? 3 : 5].name = select.name;
+								board_arr[ehf.i][(select.j < 4) ? 3 : 5].name.move = true;
+								board_arr[ehf.i][(select.j < 4) ? 3 : 5].node.text(board_arr[ehf.i][(select.j < 4) ? 3 : 5].name).css('color', (board_arr[ehf.i][(select.j < 4) ? 3 : 5].name.color) ? 'black' : 'white');
+								select.name = null;
+								select.node.empty();
+								board_arr[ehf.i][(select.j < 4) ? 2 : 6].name = ehf.name;
+								board_arr[ehf.i][(select.j < 4) ? 2 : 6].name.move = true;
+								board_arr[ehf.i][(select.j < 4) ? 2 : 6].node.text(board_arr[ehf.i][(select.j < 4) ? 2 : 6].name).css('color', (board_arr[ehf.i][(select.j < 4) ? 2 : 6].name.color) ? 'black' : 'white');
+								ehf.name = null;
+								ehf.node.empty();
+							}
+							else
+							{
+								board_arr[ehf.i][(ehf.j < 4) ? 3 : 5].name = ehf.name;
+								board_arr[ehf.i][(ehf.j < 4) ? 3 : 5].name.move = true;
+								board_arr[ehf.i][(ehf.j < 4) ? 3 : 5].node.text(board_arr[ehf.i][(ehf.j < 4) ? 3 : 5].name).css('color', (board_arr[ehf.i][(ehf.j < 4) ? 3 : 5].name.color) ? 'black' : 'white');
+								ehf.name = null;
+								ehf.node.empty();
+								board_arr[ehf.i][(ehf.j < 4) ? 2 : 6].name = select.name;
+								board_arr[ehf.i][(ehf.j < 4) ? 2 : 6].name.move = true;
+								board_arr[ehf.i][(ehf.j < 4) ? 2 : 6].node.text(board_arr[ehf.i][(ehf.j < 4) ? 2 : 6].name).css('color', (board_arr[ehf.i][(ehf.j < 4) ? 2 : 6].name.color) ? 'black' : 'white');
+								select.name = null;
+								select.node.empty();
+							}
+						}
+						else
+						{
+							ehf.name = select.name;	// 말 이동
+							ehf.name.move = true;
+							$(this).text(ehf.name).css('color', (ehf.name.color) ? 'black' : 'white');
+							select.name = null;
+							select.node.empty();
+						}
+						go(ehf);
+						color = (color) ? false : true;
+					}
+					$('#main button').removeClass();	// 색칠된 거 초기화
+					if (ehf.name !== null && ehf.name.color == color)	// 자기 말을 클릭했을 때
+					{
+						select = ehf;
+						ehf.name.select(ehf);
+						$.each(ehf.name.select_arr, function (index, item) {
+							item.node.addClass('select');
+							return;
+						});
+						if (ehf.name instanceof King)
+						{
+							if (castling(board_arr[(ehf.name.color) ? 0 : 7][0]))
+								board_arr[(ehf.name.color) ? 0 : 7][0].node.addClass('select');
+							if (castling(board_arr[(ehf.name.color) ? 0 : 7][7]))
+								board_arr[(ehf.name.color) ? 0 : 7][7].node.addClass('select');
+						}
+						else if (castling(ehf))
+							board_arr[(ehf.name.color) ? 0 : 7][4].node.addClass('select');
+					}
+					return;
+				});
+
+				$('#main').contextmenu(function () {	// 판 위에서 우클릭했을 때
+					$('input[value="무르기"]').click();
+					return false;	// 우클릭 메뉴 뜨는 거 방지
+				});
+
+				$('input[value="무르기"]').click(function () {	// 무르기 버튼을 눌렀을 때
+					if (!start || back_arr.length == 0 || $('#popup').css('display') != 'none')
+						return;
+					var tmp = back_arr.pop();
+					if (tmp.etc == 2)	// 승급
+					{
+						tmp.to.name = new Pawn(tmp.to.name.color);
+						tmp.to.name.move = true;
+					}
+					else if (tmp.etc == 4)	// 앙파상
+					{
+						board_arr[tmp.enpassant.i][tmp.enpassant.j].name = tmp.to.name;
+						tmp.to.name = null;
+						tmp.to.node.empty();
+						tmp.to = tmp.enpassant;
+						enpassant = tmp.enpassant;
+					}
+					else if (tmp.etc == 5 || tmp.etc == 6)	// 앙파상 포기
+					{
+						enpassant = tmp.enpassant;
+						tmp.dead = null;
+					}
+					else
+						enpassant = null;
+					if (tmp.etc == 3)	// 캐슬링
+					{
+						board_arr[tmp.to.i][(tmp.to.j < 4) ? 0 : 7].name = tmp.to.name;
+						board_arr[tmp.to.i][(tmp.to.j < 4) ? 0 : 7].name.move = false;
+						board_arr[tmp.to.i][(tmp.to.j < 4) ? 0 : 7].node.text(board_arr[tmp.to.i][(tmp.to.j < 4) ? 0 : 7].name).css('color', (board_arr[tmp.to.i][(tmp.to.j < 4) ? 0 : 7].name.color) ? 'black' : 'white');
+						tmp.to.name = null;
+						tmp.to.node.empty();
+						board_arr[tmp.to.i][4].name = tmp.from.name;
+						board_arr[tmp.to.i][4].name.move = false;
+						board_arr[tmp.to.i][4].node.text(board_arr[tmp.to.i][4].name).css('color', (board_arr[tmp.to.i][4].name.color) ? 'black' : 'white');
+						tmp.from.name = null;
+						tmp.from.node.empty();
+					}
+					else
+					{
+						tmp.from.name = tmp.to.name;	// 말 이동
+						if (tmp.etc == 1 || tmp.etc == 6)	// 처음 움직일 때
+							tmp.from.name.move = false;
+						tmp.from.node.text(tmp.from.name).css('color', (tmp.from.name.color) ? 'black' : 'white');
+						if (tmp.dead != null)	// 잡힌 말이 있다면
+						{
+							tmp.to.name = tmp.dead;
+							tmp.to.node.text(tmp.to.name).css('color', (tmp.to.name.color) ? 'black' : 'white');
+						}
+						else
+						{
+							tmp.to.name = null;
+							tmp.to.node.empty();
+						}
+					}
+					$('#main button').removeClass();	// 색칠된 거 초기화
+					color = (color) ? false : true;
+					return;
+				});
+
+				$('input[value="초기화"]').click(function () {	// 초기화 버튼을 눌렀을 때
+					$('#main button').removeClass();	// 색칠된 거 초기화
+					$('#popup').hide('slow');
+					if (back_arr.length == 0)
+						return;
+					$('#main').slideToggle('slow', function () {
+						$('#main button').empty();
+						each2(board_arr, function (index1, item1, index2, item2) {
+							item2.name = null;
+							return;
+						});
+						back_arr = [];
+						color = false;
+						start = false;
+						enpassant = null;
+						ready();
+						return;
+					}).slideToggle('slow');
+					return;
+				});
+
+				$(window).resize(function () {	// 창 크기가 바뀔 때
+					$('#popup').css('left', (($(window).width() - $('#popup').outerWidth()) / 2) + 'px').css('top', (($('#main').outerHeight() - $('#popup').outerHeight()) / 2) + 'px');
+					return;
+				}).resize();
+
+				$('html').on('dblclick', function () {
+					$('body').css('visibility', ($('body').css('visibility') == 'hidden') ? 'visible' : 'hidden');
+					return false;
+				});
+				return;
+			});
+
+			function each2(arr, fn)	// 이중 for문을 탐색하는 each 함수, fn에서 false를 반환하면 탐색 취소
+			{
+				var tmp = false;
+				$.each(arr, function (index1, item1) {
+					if (tmp)
+						return;
+					$.each(item1, function (index2, item2) {
+						if (tmp)
+							return;
+						tmp = (fn(index1, item1, index2, item2) === false) ? true : false;
+						return;
+					});
+					return;
+				});
+				return;
+			}
+			function ready()
+			{
+				var tmp;
+				tmp = new King(false);
+				board_arr[7][4].name = tmp;
+				board_arr[7][4].node.text(tmp).css('color', 'white');
+				tmp = new Queen(false);
+				board_arr[7][3].name = tmp;
+				board_arr[7][3].node.text(tmp).css('color', 'white');
+				tmp = new Rook(false);
+				board_arr[7][0].name = tmp;
+				board_arr[7][0].node.text(tmp).css('color', 'white');
+				tmp = new Rook(false);
+				board_arr[7][7].name = tmp;
+				board_arr[7][7].node.text(tmp).css('color', 'white');
+				tmp = new Bishop(false);
+				board_arr[7][2].name = tmp;
+				board_arr[7][2].node.text(tmp).css('color', 'white');
+				tmp = new Bishop(false);
+				board_arr[7][5].name = tmp;
+				board_arr[7][5].node.text(tmp).css('color', 'white');
+				tmp = new Knight(false);
+				board_arr[7][1].name = tmp;
+				board_arr[7][1].node.text(tmp).css('color', 'white');
+				tmp = new Knight(false);
+				board_arr[7][6].name = tmp;
+				board_arr[7][6].node.text(tmp).css('color', 'white');
+				for (var i = 0; i < SIZE; i++)
+				{
+					tmp = new Pawn(false);
+					board_arr[6][i].name = tmp;
+					board_arr[6][i].node.text(tmp).css('color', 'white');
+				}
+				tmp = new King(true);
+				board_arr[0][4].name = tmp;
+				board_arr[0][4].node.text(tmp).css('color', 'black');
+				tmp = new Queen(true);
+				board_arr[0][3].name = tmp;
+				board_arr[0][3].node.text(tmp).css('color', 'black');
+				tmp = new Rook(true);
+				board_arr[0][0].name = tmp;
+				board_arr[0][0].node.text(tmp).css('color', 'black');
+				tmp = new Rook(true);
+				board_arr[0][7].name = tmp;
+				board_arr[0][7].node.text(tmp).css('color', 'black');
+				tmp = new Bishop(true);
+				board_arr[0][2].name = tmp;
+				board_arr[0][2].node.text(tmp).css('color', 'black');
+				tmp = new Bishop(true);
+				board_arr[0][5].name = tmp;
+				board_arr[0][5].node.text(tmp).css('color', 'black');
+				tmp = new Knight(true);
+				board_arr[0][1].name = tmp;
+				board_arr[0][1].node.text(tmp).css('color', 'black');
+				tmp = new Knight(true);
+				board_arr[0][6].name = tmp;
+				board_arr[0][6].node.text(tmp).css('color', 'black');
+				for (var i = 0; i < SIZE; i++)
+				{
+					tmp = new Pawn(true);
+					board_arr[1][i].name = tmp;
+					board_arr[1][i].node.text(tmp).css('color', 'black');
+				}
+				return;
+			}
+			function go(ehf)
+			{
+				function promotion()	// 승급
+				{
+					$('#main button').removeClass();	// 색칠된 거 초기화
+					$('#popup button').css('color', $(ehf.node).css('color')).css('background-color', $(ehf.node).css('background-color'));	// 상황에 맞게 아이콘 변경
+					$('#popup').toggle('slow').one('click', 'button', function () {	// 승급 팝업에서 버튼을 클릭했을 때
+						back_arr[back_arr.length - 1].etc = 2;
+						switch ($(this).attr('title'))
+						{
+						case '퀸':
+							ehf.name = new Queen(ehf.name.color);
+							break;
+						case '룩':
+							ehf.name = new Rook(ehf.name.color);
+							break;
+						case '비숍':
+							ehf.name = new Bishop(ehf.name.color);
+							break;
+						case '나이트':
+							ehf.name = new Knight(ehf.name.color);
+							break;
+						}
+						ehf.name.move = true;
+						ehf.node.text(ehf.name).css('color', (ehf.name.color) ? 'black' : 'white');
+						$('#popup').toggle('slow');
+						color = (color) ? false : true;	// endgame 확인을 위해 임시로 순서 변경
+						go(ehf);
+						color = (color) ? false : true;
+						return;
+					});
+				}
+
+				if (enpassant != null && enpassant.name.color != color)	// 앙파상 권리 잃음
+					enpassant = null;
+				if (ehf.name instanceof Pawn && ehf.i == ((ehf.name.color) ? SIZE - 1 : 0))	// 승급
+					promotion(ehf)
+				var tmp = 0;
+				each2(board_arr, function (index1, item1, index2, item2) {
+					if (item2.name != null)
+					{
+						if (item2.name.color == color)	// 내 말 중에
+						{
+							if (item2.name instanceof Bishop && (tmp & 1) == 0)	// 비숍이 단 1개이면
+								tmp |= 1;
+							else if (item2.name instanceof Knight && (tmp & 2) == 0)	// 나이트가 단 1개이면
+								tmp |= 2;
+							else if (!(item2.name instanceof King))	// 킹을 제외한 말이 있으면
+								tmp |= 4;
+						}
+						else	// 상대 말 중에
+						{
+							item2.name.select(item2);
+							if (item2.name.select_arr.length != 0)	// 움직일 수 있으면
+								tmp |= 64;
+							if (item2.name instanceof Bishop && (tmp & 8) == 0)	// 비숍이 단 1개이면
+								tmp |= 8;
+							else if (item2.name instanceof Knight && (tmp & 16) == 0)	// 나이트가 단 1개이면
+								tmp |= 16;
+							else if (!(item2.name instanceof King))	// 킹을 제외한 말이 있으면
+								tmp |= 32;
+						}
+					}
+					return;
+				});
+				if ((tmp & 64) == 0)	// 내 차례가 끝나고 상대방이 움직일 수 없으면
+				{
+					if (check(!color))	// 상대방이 체크 상태이면
+						alert('체크메이트로 ' + ((color) ? '흑' : '백') + '의 승리입니다!!!');
+					else
+						alert('스테일메이트로 무승부입니다!!!');
+					start = false;
+				}
+				else if ((tmp & 4) == 0 && (tmp & 32) == 0 && ((tmp & 3) ^ 3) != 0 && ((tmp & 24) ^ 24) != 0)	// 기물이 부족하면
+				{
+					alert('기물 부족으로 무승부입니다!!!');
+					start = false;
+				}
+				return;
+			}
+			function castling(rook)	// 캐슬링 가능한지 체크하는 함수
+			{
+				if (rook.name == null)
+					return false;
+				var tmp = board_arr[(rook.name.color) ? 0 : 7][4];
+				if (!(rook.name instanceof Rook && tmp.name instanceof King))	// 룩, 킹이 아니면
+					return false;
+				if (rook.name.move || tmp.name.move)	// 킹이나 룩을 한번이라도 움직였다면
+					return false;
+				for (var i = ((rook.j < 4) ? 1 : 5); i <= ((rook.j < 4) ? 3 : 6); i++)	// 킹과 룩 사이에 말이 있으면
+					if (board_arr[(rook.name.color) ? 0 : 7][i].name != null)
+						return false;
+				tmp = select;
+				var tmp2 = [];
+				each2(board_arr, function (index1, item1, index2, item2) {
+					if (item2.name != null && item2.name.color != color)
+						tmp2 = tmp2.concat(item2.name.check(item2));	// 상대가 움직일 수 있는 경로 기억
+					return;
+				});
+				tmp = false;
+				$.each(tmp2, function (index, item) {
+					if (tmp)
+						return;
+					if (item.i == ((rook.name.color) ? 0 : 7) && ((rook.j < 4) ? (item.j <= 4 && item.j >= 2) : (item.j >= 4 && item.j <= 6)))	// 킹이 통과하는 경로로 상대가 움직일 수 있다면
+						tmp = true;
+					return;
+				});
+				if (tmp)
+					return false;
+				return true;
+			}
+			function check(from, to)	// 체크인지 확인하는 함수
+			{
+				if (to != undefined)
+				{
+					var tmp = to.name;
+					to.name = from.name;	// 임시로 말 이동
+					from.name = null;
+				}
+				var yourself = [];
+				each2(board_arr, function (index1, item1, index2, item2) {	// 말들이 움직일 수 있는 경로 체크
+					if (item2.name != null && item2.name.color != ((to != undefined) ? to.name.color : from))	// 상대 말들이 움직일 수 있는 경로 기억
+						yourself = yourself.concat(item2.name.check(item2));
+					return;
+				});
+				var result = false;
+				$.each(yourself, function (index, item) {
+					if (result)
+						return;
+					if (item.name instanceof King && item.name.color == ((to != undefined) ? to.name.color : from))	// 상대가 움직일 수 있는 경로에 킹이 있다면
+						result = true;
+					return;
+				});
+				if (to != undefined)
+				{
+					from.name = to.name;
+					to.name = tmp;
+				}
+				return result;
+			}
+		</script>
+	</head>
+	<body>
+		<div>
+			<input type="button" value="무르기"> <input type="button" value="초기화">
+		</div>
+		<div id="main"></div>
+		<div id="popup">
+			<p>어떤 말로 승급하시겠습니까?</p>
+			<button title="퀸">♛</button> <button title="룩">♜</button> <button title="비숍">♝</button> <button title="나이트">♞</button>
+		</div>
+	</body>
+</html>

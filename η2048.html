@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ko">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width">
+		<title>2048</title>
+		<style>
+			body {
+				text-align: center;
+			}
+			div {
+				margin: 10px;
+			}
+			#main {
+				margin: 0 auto;
+			}
+			button {
+				margin: 0;
+				padding: 0;
+				width: 80px;
+				height: 80px;
+				text-align: center;
+				line-height: 80px;
+				vertical-align: top;
+				border: 3px solid #BBADA0;
+				color: #776E65;
+				background-color: #CDC1B4;
+			}
+			.c2 {
+				font-size: 80px;
+				background-color: #EEE4DA;
+			}
+			.c4 {
+				font-size: 80px;
+				background-color: #E6D8CA;
+			}
+			.c8 {
+				font-size: 80px;
+				background-color: #E0CEBC;
+			}
+			.c16 {
+				font-size: 60px;
+				background-color: #D9C3AD;
+			}
+			.c32 {
+				font-size: 60px;
+				background-color: #D2B89F;
+			}
+			.c64 {
+				font-size: 60px;
+				background-color: #CBAE90;
+			}
+			.c128 {
+				font-size: 40px;
+				background-color: #C5A382;
+			}
+			.c256 {
+				font-size: 40px;
+				background-color: #BE9973;
+			}
+			.c512 {
+				font-size: 40px;
+				background-color: #B78E65;
+			}
+			.c1024 {
+				font-size: 30px;
+				background-color: #B08356;
+			}
+			.c2048 {
+				font-size: 30px;
+				background-color: #A5794C;
+			}
+		</style>
+		<script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+		<script>
+			"use strict";
+			var SIZE = 4;
+			var board_arr;
+			var start = false;
+
+			$(document).ready(function () {
+				var tmp;
+				board_arr = new Array(SIZE);
+				for (var i = 0; i < SIZE; i++)
+				{
+					board_arr[i] = new Array(SIZE);
+					for (var j = 0; j < SIZE; j++)
+					{
+						tmp = $('<button></button>').appendTo('#main');
+						board_arr[i][j] = tmp;
+					}
+					$('#main').append($('<br>'));
+				}
+				$('#main').css('width', ($('button').outerWidth() * SIZE) + 'px');	// 창 크기가 작을 때 판이 줄바꿈되는거 방지
+				ready();
+
+				$(document).keydown(function (e) {	// 키를 눌렀을 때
+					if (e.keyCode < 37 || e.keyCode > 40)	// 방향키가 아니면 무시
+						return;
+					if ($('#main button[class*=c]').length == 2)	// 첫 돌이면
+						start = true;
+					else if (!start)
+						return;
+					var state = false;
+					switch (e.keyCode)
+					{
+					case 37:	// 왼쪽
+						for (var i = 0; i < SIZE; i++)
+							for (var j = 0; j < SIZE; j++)
+							{
+								if (board_arr[i][j].text() == '')
+									continue;
+								for (var k = 0; k < j; k++)
+								{
+									if (board_arr[i][k].text() == '')	// 비어 있으면
+									{
+										board_arr[i][k].text(board_arr[i][j].text()).addClass('c' + board_arr[i][k].text());
+										board_arr[i][j].text('').removeClass();
+										state = true;
+										break;
+									}
+									else if (board_arr[i][k].text() == board_arr[i][j].text())	// 같은 숫자면
+									{
+										var tmp = true;
+										for (var l = k + 1; l < j; l++)	// 사이에 다른 숫자가 있는지 확인
+											if (board_arr[i][l].text() != '')
+											{
+												tmp = false;
+												break;
+											}
+										if (tmp)
+										{
+											board_arr[i][k].text(board_arr[i][j].text() * 2).addClass('c' + board_arr[i][k].text());
+											board_arr[i][j].text('').removeClass();
+											state = true;
+											break;
+										}
+									}
+								}
+							}
+						break;
+					case 38:	// 위
+						for (var i = 0; i < SIZE; i++)
+							for (var j = 0; j < SIZE; j++)
+							{
+								if (board_arr[j][i].text() == '')
+									continue;
+								for (var k = 0; k < j; k++)
+								{
+									if (board_arr[k][i].text() == '')	// 비어 있으면
+									{
+										board_arr[k][i].text(board_arr[j][i].text()).addClass('c' + board_arr[k][i].text());
+										board_arr[j][i].text('').removeClass();
+										state = true;
+										break;
+									}
+									else if (board_arr[k][i].text() == board_arr[j][i].text())	// 같은 숫자면
+									{
+										var tmp = true;
+										for (var l = k + 1; l < j; l++)	// 사이에 다른 숫자가 있는지 확인
+											if (board_arr[l][i].text() != '')
+											{
+												tmp = false;
+												break;
+											}
+										if (tmp)
+										{
+											board_arr[k][i].text(board_arr[j][i].text() * 2).addClass('c' + board_arr[k][i].text());
+											board_arr[j][i].text('').removeClass();
+											state = true;
+											break;
+										}
+									}
+								}
+							}
+						break;
+					case 39:	// 오른쪽
+						for (var i = 0; i < SIZE; i++)
+							for (var j = SIZE - 1; j >= 0; j--)
+							{
+								if (board_arr[i][j].text() == '')
+									continue;
+								for (var k = SIZE - 1; k > j; k--)
+								{
+									if (board_arr[i][k].text() == '')	// 비어 있으면
+									{
+										board_arr[i][k].text(board_arr[i][j].text()).addClass('c' + board_arr[i][k].text());
+										board_arr[i][j].text('').removeClass();
+										state = true;
+										break;
+									}
+									else if (board_arr[i][k].text() == board_arr[i][j].text())	// 같은 숫자면
+									{
+										var tmp = true;
+										for (var l = k - 1; l > j; l--)	// 사이에 다른 숫자가 있는지 확인
+											if (board_arr[i][l].text() != '')
+											{
+												tmp = false;
+												break;
+											}
+										if (tmp)
+										{
+											board_arr[i][k].text(board_arr[i][j].text() * 2).addClass('c' + board_arr[i][k].text());
+											board_arr[i][j].text('').removeClass();
+											state = true;
+											break;
+										}
+									}
+								}
+							}
+						break;
+					case 40:	// 아래
+						for (var i = 0; i < SIZE; i++)
+							for (var j = SIZE - 1; j >= 0; j--)
+							{
+								if (board_arr[j][i].text() == '')
+									continue;
+								for (var k = SIZE - 1; k > j; k--)
+								{
+									if (board_arr[k][i].text() == '')	// 비어 있으면
+									{
+										board_arr[k][i].text(board_arr[j][i].text()).addClass('c' + board_arr[k][i].text());
+										board_arr[j][i].text('').removeClass();
+										state = true;
+										break;
+									}
+									else if (board_arr[k][i].text() == board_arr[j][i].text())	// 같은 숫자면
+									{
+										var tmp = true;
+										for (var l = k - 1; l > j; l--)	// 사이에 다른 숫자가 있는지 확인
+											if (board_arr[l][i].text() != '')
+											{
+												tmp = false;
+												break;
+											}
+										if (tmp)
+										{
+											board_arr[k][i].text(board_arr[j][i].text() * 2).addClass('c' + board_arr[k][i].text());
+											board_arr[j][i].text('').removeClass();
+											state = true;
+											break;
+										}
+									}
+								}
+							}
+						break;
+					}
+					if (state)	// 변화가 없으면 무시
+						go();
+					return;
+				});
+
+				$('input[value="초기화"]').click(function () {	// 초기화 버튼을 눌렀을 때
+					$('#main').slideToggle('slow', function () {
+						$('#main button').removeClass();
+						$('#main button').empty();
+						start = false;
+						ready();
+						return;
+					}).slideToggle('slow');
+					return;
+				});
+
+				$('html').on('dblclick', function () {
+					$('body').css('visibility', ($('body').css('visibility') == 'hidden') ? 'visible' : 'hidden');
+					return false;
+				});
+				return;
+			});
+
+			function each2(arr, fn)	// 이중 for문을 탐색하는 each 함수, fn에서 false를 반환하면 탐색 취소
+			{
+				var tmp = false;
+				$.each(arr, function (index1, item1) {
+					if (tmp)
+						return;
+					$.each(item1, function (index2, item2) {
+						if (tmp)
+							return;
+						tmp = (fn(index1, item1, index2, item2) === false) ? true : false;
+						return;
+					});
+					return;
+				});
+				return;
+			}
+			function ready()
+			{
+				var i, j;
+				for (var k = 0; k < 2; k++)
+				{
+					do
+					{
+						i = Math.floor(Math.random() * SIZE);
+						j = Math.floor(Math.random() * SIZE);
+					} while (board_arr[i][j].text() != '');
+					board_arr[i][j].text('2').addClass('c2');
+				}
+				return;
+			}
+			function go()
+			{
+				function check()	// 움직일 수 있는지 체크
+				{
+					for (var i = 0; i < SIZE; i++)
+						for (var j = 0; j < SIZE; j++)
+						{
+							if (board_arr[i][j].text() == '')
+								return true;
+							if (board_arr[i][j + 1] != undefined && board_arr[i][j].text() == board_arr[i][j + 1].text())
+								return true;
+							if (board_arr[i + 1] != undefined && board_arr[i][j].text() == board_arr[i + 1][j].text())
+								return true;
+						}
+					return false;
+				}
+
+				var tmp = 0;	// 이진수, 1: 빈곳있음, 10: 2048
+				each2(board_arr, function (index1, item1, index2, item2) {
+					if (item2.text() == '')
+						tmp |= 1;
+					else if (item2.text() == '2048')
+						tmp |= 2;
+					return;
+				});
+				if ((tmp & 1) != 0)	// 빈 곳이 있으면
+				{
+					var i, j;	// 새로운 숫자 배치
+					do
+					{
+						i = Math.floor(Math.random() * SIZE);
+						j = Math.floor(Math.random() * SIZE);
+					} while (board_arr[i][j].text() != '');
+					if (Math.floor(Math.random() * 10) > 1)
+						board_arr[i][j].text('2').addClass('c2');	// 90%
+					else
+						board_arr[i][j].text('4').addClass('c4');	// 10%
+				}
+				if (!check())	// 움직일 수 없으면
+				{
+					alert('실패!!!');
+					start = false;
+					return;
+				}
+				else if ((tmp & 2) != 0)	// 2048을 완성하고도 움직일 수 있으면
+				{
+					alert('클리어!!!');
+					start = false;
+					return;
+				}
+				return;
+			}
+		</script>
+	</head>
+	<body>
+		<div>
+			<input type="button" value="초기화">
+		</div>
+		<div id="main"></div>
+	</body>
+</html>

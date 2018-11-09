@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ko">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width">
+		<title>바둑판</title>
+		<style>
+			body {
+				text-align: center;
+			}
+			div {
+				margin: 10px;
+			}
+			#main {
+				margin: 0 auto;
+			}
+			button {
+				margin: 0;
+				padding: 0;
+				width: 40px;
+				height: 40px;
+				font-size: 55pt;
+				text-align: center;
+				line-height: 40px;
+				vertical-align: top;
+				background-color: #FFC90E;
+				border-style: none;
+				background-repeat: no-repeat;
+				background-position: -3px 0px;
+			}
+		</style>
+		<script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+		<script>
+			"use strict";
+			var SIZE = 19;	// 바둑판 19x19
+			var color = true;	// true = 검은돌, false = 흰돌
+			var back_arr = [];
+
+			$(document).ready(function () {
+				for (var i = 0; i < SIZE; i++)
+				{
+					for (var j = 0; j < SIZE; j++)
+					{
+						if (i == 0)
+						{
+							if (j == 0)
+								$('<button></button>').css('background-image', "url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOvwAADr8BOAVTJAAAABh0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMC43i4tTSQAAAKNJREFUaEPtzzEKAkEUBNG9/6VHDUy0koZeoaQH3gSVfPo65/wFjEYYjTAaYTTCaITRCKMRRiOMRhiNMBphNMJohNEIoxFGI4xGGI0wGmE0wmiE0QijEcam53t996PjTV8H70LHm96HPnsbxqYNCWFs2pAQxqYNCWFs2pAQxqYNCWFs2pAQxqYNCWFs2pAQxqYNCWFs2pAQxqYNCWFs+s2Qcz0APZdpId7fNOEAAAAASUVORK5CYII=')").appendTo('#main');
+							else if (j == SIZE - 1)
+								$('<button></button>').css('background-image', "url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOvwAADr8BOAVTJAAAABh0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMC43i4tTSQAAAJxJREFUaEPtzzEKxDAUA9Hc/9Je0manESjFBBmei2k+us45n4DRCKMRRiOMRhiNMBphNMJohNEIoxFGI4xGGI0wGmE0wmiE0QijEUYjjEYYjTAaYTS63/2/7nm47X5/R9/wPNyGsWlDQhibNiSEsWlDQhibNiSEsWlDQhibNiSEsWlDQhibNiSEsWlDQhibNiSEsWlDQhibNiRyrh9iTmkhUzR4YQAAAABJRU5ErkJggg==')").appendTo('#main');
+							else
+								$('<button></button>').css('background-image', "url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOvwAADr8BOAVTJAAAABh0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMC43i4tTSQAAAJxJREFUaEPt0TEKxDAAA8H8/9MOKa4J2wjEwQYZxsU2Rvg653wCRiOMRhiNMBphNMJohNEIoxFGI4xGGI0wGmE0wmiE0QijEUYjjEYYjTAaYTTCaITR6DnP/QUYfeibmn4PvXsbxqYNCWFs2pAQxqYNCWFs2pAQxqYNCWFs2pAQxqYNCWFs2pAQxqYNCWFs2pAQxqYNCWFs+s+Qc93O0QmBfeMjGwAAAABJRU5ErkJggg==')").appendTo('#main');
+						}
+						else if (i == SIZE - 1)
+						{
+							if (j == 0)
+								$('<button></button>').css('background-image', "url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOvwAADr8BOAVTJAAAABh0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMC43i4tTSQAAAJ9JREFUaEPtzzEKw0AUA1Hf/9Ibp840Am0xQYZnzLj46DnnXPU+39f7yf9bMDZtSAhj04aEMDZtSAhj04aEMDZtSAhj04aEMDZtSAhj04aEMDZtSAhj04aEMDZtSAhj098NuY6ON/0cvIWOG2E0wmiE0QijEUYjjEYYjTAaYTTCaITRCKMRRiOMRhiNMBphNMJohNEIoxFGI4xGGH3O8wGy6Gkh9DaWuAAAAABJRU5ErkJggg==')").appendTo('#main');
+							else if (j == SIZE - 1)
+								$('<button></button>').css('background-image', "url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOvwAADr8BOAVTJAAAABh0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMC43i4tTSQAAAKZJREFUaEPtzzEKgEAQBEH//+lTAxPtZGBOaFihRNpgmWOttdX13K/rk/+3YGyaISGMTTMkhLFphoQwNs2QEMamGRLC2DRDQhibZkgIY9MMCWFsmiEhjE0zJISxaYaEMDb9NuQ5tNv7cNv9fI7u8D7chtEIoxFGI4xGGI0wGmE0wmiE0QijEUYjjEYYjTAaYTTCaITRCKMRRiOMRhiNMBphNMLos44T159pId75VwkAAAAASUVORK5CYII=')").appendTo('#main');
+							else
+								$('<button></button>').css('background-image', "url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOvwAADr8BOAVTJAAAABh0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMC43i4tTSQAAAJ9JREFUaEPt0bEKhEAAA1H//6f3tLhumkDuYCTCE5ktluB1zvmp+3le9yeft2Bs2pAQxqYNCWFs2pAQxqYNCWFs2pAQxqYNCWFs2pAQxqYNCWFs2pAQxqYNCWFs2pAQxqa/Dfle9AIYfeg3GWE0wmiE0QijEUYjjEYYjTAaYTTCaITRCKMRRiOMRhiNMBphNMJohNEIoxFGI4xGGH3O9QFEMQmBu/D2OQAAAABJRU5ErkJggg==')").appendTo('#main');
+						}
+						else
+						{
+							if (j == 0)
+								$('<button></button>').css('background-image', "url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOvwAADr8BOAVTJAAAABh0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMC43i4tTSQAAAKRJREFUaEPtz7EKwlAUBFH//6efsbDRaQYmFrKBE8KkuOzjnHOr63m9rk/+X8FY2hAJY2lDJIylDZEwljZEwljaEAljaUMkjKUNkTCWNkTCWNoQCWNpQySMpQ2RMJb+bsjt6Hjp6+Bd6Hjpfeiz1zCWNkTCWNoQCWNpQySMpQ2RMJY2RMJY2hAJY2lDJIylDZEwljZEwljaEAljaUMkjKXfDDmPJ/ceCYHttDhbAAAAAElFTkSuQmCC')").appendTo('#main');
+							else if (j == SIZE - 1)
+								$('<button></button>').css('background-image', "url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOvwAADr8BOAVTJAAAABh0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMC43i4tTSQAAAKJJREFUaEPtzzEKhAAUxFDvf2lXi23cNANxqwhPJBafOc7zfNX13K/rk/9bMJoaMsJoasgIo6khI4ymhowwmhoywmhqyAijqSEjjKaGjDCaGjLCaGrICKOpISOMpr8N+R562/Ow7X5+jr7hediG0dSQEUZTQ0YYTQ0ZYTQ1ZITR1JARRlNDRhhNDRlhNDVkhNHUkBFGU0NGGE0NGWE0NWRyHh8b5AmB8dCKKgAAAABJRU5ErkJggg==')").appendTo('#main');
+							else
+								$('<button></button>').css('background-image', "url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOwAAADsABataJCQAAABh0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMC43i4tTSQAAAKRJREFUaEPt0bEKg0AABFH//6eNKWzCNAMTIWGFJzIWx3LHeZ5fdT3v1/XJ/ysYSxsiYSxtiISxtCESxtKGSBhLGyJhLG2IhLG0IRLG0oZIGEsbImEsbYiEsbQhEsbSY0Pug/4Axt9D11S6D/rsNYylDZEwljZEwljaEAljaUMkjKUNkTCWNkTCWNoQCWNpQySMpQ2RMJY2RMJY2hAJY+mZIefxAohnqdJ8OsEgAAAAAElFTkSuQmCC')").appendTo('#main');
+						}
+					}
+					$('#main').append($('<br>'));
+				}
+				$('#main').css('width', ($('button').outerWidth() * SIZE) + 'px');	// 창 크기가 작을 때 판이 줄바꿈되는거 방지
+
+				$('#main').on('click', 'button', function () {	// 판 위를 클릭했을 때
+					if ($(this).text() != '')	// 돌이 있으면
+						return;
+					$(this).text('●').css('color', (color) ? 'black' : 'white');
+					back_arr.push(this);
+					color = (color) ? false : true;
+					return;
+				});
+
+				$('#main').on('contextmenu', function () {	// 판 위에서 우클릭했을 때
+					$('input[value="무르기"]').click();
+					 return false;	// 우클릭 메뉴 뜨는 거 방지
+				});
+
+				$('input[value="무르기"]').click(function () {	// 무르기 버튼을 눌렀을 때
+					if (back_arr.length == 0)
+						return;
+					$(back_arr.pop()).empty();
+					color = (color) ? false : true;
+					return;
+				});
+
+				$('input[value="초기화"]').click(function () {	// 초기화 버튼을 눌렀을 때
+					if (back_arr.length == 0)
+						return;
+					$('#main').slideToggle('slow', function () {
+						$('button').empty();
+						back_arr = [];
+						color = true;
+						return;
+					}).slideToggle('slow');
+					return;
+				});
+
+				$('html').on('dblclick', function () {
+					$('body').css('visibility', ($('body').css('visibility') == 'hidden') ? 'visible' : 'hidden');
+					return false;
+				});
+				return;
+			});
+		</script>
+	</head>
+	<body>
+		<div><input type="button" value="무르기"> <input type="button" value="초기화"></div>
+		<div id="main"></div>
+	</body>
+</html>
