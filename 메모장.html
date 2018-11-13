@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ko">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width">
+		<title>메모장</title>
+		<style>
+			#editor {
+				border: 1px solid black;
+				width: 100%;
+				height: 100%;
+			}
+		</style>
+		<script>
+			"use strict";
+			function edit(i)
+			{
+				var editor = document.getElementById('editor');
+				if (editor.isContentEditable)
+				{
+					editor.contentEditable = false;
+					i.value = '편집';
+				}
+				else
+				{
+					editor.contentEditable = true;
+					i.value = '보기';
+				}
+				return;
+			}
+			function html(i)
+			{
+				if (i.checked)
+					editor.innerText = editor.innerHTML;
+				else
+					editor.innerHTML = editor.innerText;
+				return;
+			}
+		</script>
+	</head>
+	<body>
+		<p><input type="button" value="보기" onclick="edit(this)"> <input id="cb" type="checkbox" onclick="html(this)"><label for="cb">HTML</label></p>
+		<div id="editor" contenteditable></div>
+	</body>
+</html>
