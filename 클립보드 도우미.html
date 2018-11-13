@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ko">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width">
+		<title>클립보드 도우미</title>
+		<script>
+			"use strict";
+			var count = 0;
+
+			window.onload = function () {
+				for (var i = 0; i < 2; i++)
+					document.getElementById('add_button').onclick();
+				return;
+			};
+
+			function clipboard(text)
+			{
+				window.clipboardData.setData('text', text);
+				return;
+			}
+			function add()
+			{
+				count++;
+//				document.getElementById('area').innerHTML += '<p><input id="name' + count + '" type="text" size="12"><input id="value' + count + '" type="text" size="12"><input id="button' + count + '" type="button" onclick="clipboard(value' + count + '.value)"></p>';
+				var tmp = document.createElement('p');
+				tmp.innerHTML = '<input id="name' + count + '" type="text" size="12"><input id="value' + count + '" type="text" size="12"><input id="button' + count + '" type="button" onclick="clipboard(value' + count + '.value)">';
+				document.getElementById('area').appendChild(tmp);
+				document.getElementById('button' + count).style.visibility = 'hidden';
+				return;
+			}
+			function sub()
+			{
+				if (count == 0)
+					return;
+				document.getElementById('area').removeChild(document.getElementById('button' + count).parentNode);
+				count--;
+				return;
+			}
+			function apply()
+			{
+				if (document.getElementById('apply_button').value == '적용')
+				{
+					for (var i = 1; i <= count; i++)
+					{
+						document.getElementById('button' + i).value = document.getElementById('name' + i).value;
+						document.getElementById('name' + i).style.visibility = 'hidden';
+						document.getElementById('value' + i).style.visibility = 'hidden';
+						if (document.getElementById('button' + i).value != '')
+							document.getElementById('button' + i).style.visibility = 'visible';
+					}
+					document.getElementById('add_button').style.visibility = 'hidden';
+					document.getElementById('sub_button').style.visibility = 'hidden';
+					document.getElementById('clear_button').style.visibility = 'hidden';
+					document.getElementById('apply_button').value = '편집';
+					window.onbeforeunload = function () {
+						return '정말로 닫으시겠습니까?';
+					};
+				}
+				else
+				{
+					for (var i = 1; i <= count; i++)
+					{
+						document.getElementById('name' + i).style.visibility = 'visible';
+						document.getElementById('value' + i).style.visibility = 'visible';
+						document.getElementById('button' + i).style.visibility = 'hidden';
+					}
+					document.getElementById('add_button').style.visibility = 'visible';
+					document.getElementById('sub_button').style.visibility = 'visible';
+					document.getElementById('clear_button').style.visibility = 'visible';
+					document.getElementById('apply_button').value = '적용';
+					window.onbeforeunload = null;
+				}
+				return;
+			}
+		</script>
+	</head>
+	<body>
+		<form>
+			<p><input id="add_button" type="button" value="+" onclick="add()"> <input id="sub_button" type="button" value="-" onclick="sub()"></p>
+			<div id="area"></div>
+			<p><input id="apply_button" type="button" value="적용" onclick="apply()">
+			<input id="clear_button" type="reset" value="비우기"></p>
+		</form>
+	</body>
+</html>
